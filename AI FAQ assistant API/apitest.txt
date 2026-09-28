@@ -1,0 +1,97 @@
+AI FAQ Assistant API - Postman Test Guide
+========================================
+
+Local server
+------------
+Base URL: http://127.0.0.1:8000
+Start from the project folder:
+  py -m uvicorn main:app --host 127.0.0.1 --port 8000
+
+Postman collection
+------------------
+Name: AI FAQ Assistant API Tests
+Collection ID: 58514678-ca66783d-e4c4-4b65-a795-1d338838fd77
+The collection variable baseUrl is http://127.0.0.1:8000. It contains five
+requests with assertions. Start the API before sending requests. For a
+collection run, use a local/Desktop Agent that can reach 127.0.0.1.
+
+API endpoints and parameters
+----------------------------
+
+1. GET http://127.0.0.1:8000/
+   Path parameters: none.
+   Query parameters: none.
+   Request body: none.
+   Expected: 200 OK with project metadata, status, FAQ count, and endpoint list.
+
+2. GET http://127.0.0.1:8000/faqs
+   Path parameters: none.
+   Query parameters: none.
+   Request body: none.
+   Expected: 200 OK with count and the FAQ question/answer map (24 entries).
+
+3. POST http://127.0.0.1:8000/ask
+   Path parameters: none.
+   Query parameters: none.
+   Header: Content-Type: application/json
+   Required JSON body field: question (string).
+   Expected: 200 OK for a FAQ answer; 400 if question contains only whitespace;
+   422 if the request body or required question field is missing/invalid.
+   Unknown questions use the Gemini fallback when GEMINI_API_KEY is configured.
+
+Postman test results
+--------------------
+GET /                         200 OK (Postman Extension)
+GET /faqs                     200 OK, 24 FAQs (Postman Extension)
+POST /ask with no body        422 Unprocessable Content (Postman Extension)
+POST /ask known FAQ           200 OK, source FAQ Database (local HTTP check)
+POST /ask whitespace question 400 Bad Request (local HTTP check)
+
+The Postman collection runner was opened, but it did not dispatch requests to
+the local server in this setup. The GETs and missing-body POST were sent from
+Postman's active request tab. The two body-bearing POST checks were verified
+against the same local server with Python's standard HTTP client. No Gemini
+requests were made.
+
+Demo examples
+-------------
+
+GET the API home/metadata:
+  http://127.0.0.1:8000/
+
+List all FAQs:
+  http://127.0.0.1:8000/faqs
+
+Postman request for a known FAQ (Body > raw > JSON):
+  POST http://127.0.0.1:8000/ask
+  Content-Type: application/json
+  {
+    "question": "What is FastAPI?"
+  }
+  Expected source: FAQ Database
+
+Postman request matching an FAQ inside a longer question:
+  POST http://127.0.0.1:8000/ask
+  {
+    "question": "Please explain what is Python to me"
+  }
+  Expected source: FAQ Database (Matched)
+
+Blank-question validation example:
+  POST http://127.0.0.1:8000/ask
+  {
+    "question": "   "
+  }
+  Expected: 400 Bad Request and {"detail":"Question cannot be empty."}
+
+Optional Gemini fallback demo (may use external API quota):
+  POST http://127.0.0.1:8000/ask
+  {
+    "question": "Explain quantum computing in simple terms"
+  }
+This may send the question to Google Gemini if GEMINI_API_KEY is configured.
+Do not send it unless you intend to make that external request.
+
+Interactive API documentation:
+  http://127.0.0.1:8000/docs
+  http://127.0.0.1:8000/redoc
